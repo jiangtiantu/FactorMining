@@ -4,16 +4,13 @@
 # @Email:  18817289038@163.com
 
 import os
-import xlrd
 import numpy as np
 import pandas as pd
 import geppy as gep
 import seaborn as sns
 import bottleneck as bk
 import matplotlib.pyplot as plt
-import sklearn.model_selection as ms
 
-from copy import deepcopy
 from scipy.stats import t
 from functools import reduce
 from typing import Any, Tuple
@@ -22,13 +19,13 @@ from collections import defaultdict
 
 from base_class.template import GEP
 from database.sample import select_sample
-from utility.operator_func import GEPFunction
+from utility.operator_func import GEPFunctionTiming
 from run.GEP_tming import GEPTiming
 
 sns.set(font='SimHei', palette="muted", color_codes=True)
 sns.set_style("darkgrid", {"font.sans-serif": ['simhei', 'Droid Sans Fallback']})
 
-FUNC = GEPFunction()
+FUNC_TIMING = GEPFunctionTiming()
 
 replace = {
     "信号占比0.1": "信号占比0.5",
@@ -48,13 +45,13 @@ def get_data():
 
 
 def FUNCS(data: np.array):
-    FUNC.dim = data.X.shape[0]
+    FUNC_TIMING.dim = data.X.shape[0]
 
-    # signal = data.X[:, 3] - FUNC.min_EVO(data.X[:, 2], data.X[:, 0]) + FUNC.rolling_argmin_EVO(data.X[:, 3]) * 2
-    # signal = FUNC.rolling_argmin_EVO(data.X[:, 3]) + data.X[:, 3] + FUNC.log_EVO(data.X[:, 2]) - data.X[:, 0]
-    # signal = data.X[:, 3] - data.X[:, 0] + 0.8252 + FUNC.rolling_argmax_EVO(FUNC.mean_EVO(data.X[:, 5], FUNC.rolling_std_EVO(data.X[:, 4])))
-    # signal = data.X[:, 3] - data.X[:, 0] + FUNC.log_EVO(data.X[:, 3])  # data.X[:, 3] - data.X[:, 0]
-    signal = FUNC.signal1_EVO(data.X[:, 4]) + FUNC.log_EVO(FUNC.sqrt_EVO(data.X[:, 4])) - data.X[:, 0] + data.X[:, 3]
+    # signal = data.X[:, 3] - FUNC_TIMING.min_EVO(data.X[:, 2], data.X[:, 0]) + FUNC_TIMING.rolling_argmin_EVO(data.X[:, 3]) * 2
+    # signal = FUNC_TIMING.rolling_argmin_EVO(data.X[:, 3]) + data.X[:, 3] + FUNC_TIMING.log_EVO(data.X[:, 2]) - data.X[:, 0]
+    # signal = data.X[:, 3] - data.X[:, 0] + 0.8252 + FUNC_TIMING.rolling_argmax_EVO(FUNC_TIMING.mean_EVO(data.X[:, 5], FUNC_TIMING.rolling_std_EVO(data.X[:, 4])))
+    # signal = data.X[:, 3] - data.X[:, 0] + FUNC_TIMING.log_EVO(data.X[:, 3])  # data.X[:, 3] - data.X[:, 0]
+    signal = FUNC_TIMING.signal1_EVO(data.X[:, 4]) + FUNC_TIMING.log_EVO(FUNC_TIMING.sqrt_EVO(data.X[:, 4])) - data.X[:, 0] + data.X[:, 3]
     ret = np.where(signal >= 0, data.Y, 0)
     rets = pd.DataFrame([ret, data.Y], index=['strategy', 'hs300']).T
     navs = (rets + 1).cumprod()
@@ -308,25 +305,25 @@ def _compile_gene(g, pset):
 
 def test4():
     qq = 0
-    path = r'A:\Work\Working\13.基于机器学习的因子挖掘\相关实验\21.自适应概率\固定概率'
+    path = r'A:\Work\Working\13.基于机器学习的因子挖掘\相关实验\21.真实样本_独立样本t检验_自适应概率'
     files = os.listdir(path)
     m, best10 = [], []
     for file in files:
-        if file in ['结果整理.xlsx', '结果', '迭代结果.xlsx', '固定概率']:
+        if file in ['结果整理.xlsx', '对比.xlsx', '迭代结果.xlsx', '固定概率', '历史']:
             continue
         print(file)
-        data = pd.read_csv(os.path.join(path, file), encoding='GBK')
+        data = pd.read_csv(os.path.join(path, file))
         if file.startswith('formula'):
 
             eff10 = data.drop_duplicates(subset=['train', 'verify', 'verify2', 'test', 'test2']).sort_values(
-                'verifyF2', ascending=False).iloc[:10, ]
+                'verifyF1', ascending=False).iloc[:10, ]
             eff10['p'] = eff10['test2'].map(lambda x: t.sf(x, 136))
             eff10['iter'] = file[7:-4]
             best10.append(eff10)  # [eff10['verifyF1'] >= 1.98]
         else:
             m.append(data)
     # iters = reduce(lambda x, y: x + y, m) / 30
-    pd.concat(best10).to_csv(os.path.join(path, 'testF2.csv'), encoding='GBK')
+    pd.concat(best10).to_csv(os.path.join(path, 'testF1.csv'), encoding='GBK')
     # iters.to_csv(os.path.join(path, '迭代.csv'), encoding='GBK')
 
 

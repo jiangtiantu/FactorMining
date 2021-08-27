@@ -45,8 +45,10 @@ class EvolutionOperator(object):
                                                   )
 
 
-class GEPFunction(EvolutionOperator):
-    __doc__ = """基因表达式规划算子类"""
+class GEPFunctionTiming(EvolutionOperator):
+    __doc__ = """
+    基因表达式规划算子类: 择时信号挖掘相关算子
+    """
     dim: int = 10
 
     def __init__(self):

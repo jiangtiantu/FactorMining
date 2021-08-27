@@ -10,7 +10,6 @@ import geppy as gep
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import sklearn.model_selection as ms
 
 from scipy.stats import ttest_ind, hmean
 from typing import Any, Tuple
@@ -131,10 +130,8 @@ class GEPTiming(GEP):
         # 测试集
         sampleTest = self.data.signTestNum * self.data.ratio + self.data.testL - self.data.signTestNum
         correctTest = sum(flag1Test) * self.data.ratio + len(flag0Test) - sum(flag0Test)
-
         individual.test.values = correctTest / sampleTest,
-        individual.test2.values = self.ttest(yRetTest1, yRetTest0, 3),
-
+        individual.test2.values = self.tTest(yRetTest1, yRetTest0, 3),
         individual.testInfo = len(yRetTest1), len(yRetTest0), meanTest1, stdTest1, meanTest0, stdTest0
 
         fitnessTrain = 0 if np.isnan(fitnessTrain) else fitnessTrain

@@ -11,15 +11,15 @@ from copy import deepcopy
 from operator import eq
 from functools import partial
 from bisect import bisect_right
-from typing import List, Callable
 from dataclasses import dataclass
+from typing import List, Callable
 from collections import defaultdict
 from abc import ABC, abstractmethod
 from deap import creator, base, tools
 
-from base_class.basic import gep_simple as run1
+from base_class.basic import gep_simple as run1  # 自适应概率
 from base_class.basic2 import gep_simple as run2
-from utility.operator_func import GEPFunction
+from utility.operator_func import GEPFunctionTiming
 
 """
 基因表达式相关模块
@@ -167,7 +167,7 @@ class GEP(ABC):
         self.check_class(opt)
         self.data: dataclass  # 数据类
         self.TB = gep.Toolbox()
-        self.Func = GEPFunction()
+        self.Func = GEPFunctionTiming()
 
         self.gep_p = None  # PrimitiveSet
         self.stats = None  # Statistic
