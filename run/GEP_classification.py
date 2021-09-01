@@ -18,7 +18,7 @@ from collections import defaultdict
 from sklearn.metrics import r2_score, f1_score
 
 from base_class.template import GEP
-from database.sample import select_sample
+from data_API.sample_timing import select_sample
 
 
 class GEPClassification(GEP):
@@ -52,40 +52,40 @@ class GEPClassification(GEP):
         """
 
         # 信号
-        self.Func.dim = self.data.X.shape[0]
+        self.Func.dim = self.dataSet['X'].X.shape[0]
         funcL = self.TB.compile(individual)
-        yAllPre = np.array(funcL(*tuple(self.data.X.T)))
-        yAllPre = checkDim(yAllPre, dim=self.data.sampleL)[0]
+        yAllPre = np.array(funcL(*tuple(self.dataSet['X'].X.T)))
+        yAllPre = checkDim(yAllPre, dim=self.dataSet['X'].sampleL)[0]
         ySignAll = np.where(yAllPre > self.the, 1, 0)
 
         # 样本划分
-        ySignTrain = np.where(self.data.Label == 0, ySignAll, -1)
-        ySignVerify = np.where(self.data.Label == 1, ySignAll, -1)
-        ySignTest = np.where(self.data.Label == 2, ySignAll, -1)
+        ySignTrain = np.where(self.dataSet['X'].Label == 0, ySignAll, -1)
+        ySignVerify = np.where(self.dataSet['X'].Label == 1, ySignAll, -1)
+        ySignTest = np.where(self.dataSet['X'].Label == 2, ySignAll, -1)
 
         # 适应度计算
-        sampleTrain = (self.data.trainL - self.data.signTrainNum) * 2
-        flag0Train = ySignTrain[np.argwhere((self.data.Label == 0) & (self.data.YSign == 0)).flatten()]
-        flag1Train = ySignTrain[np.argwhere((self.data.Label == 0) & (self.data.YSign == 1)).flatten()]
-        correctTrain = sum(flag1Train) * self.data.ratio + len(flag0Train) - sum(flag0Train)
+        sampleTrain = (self.dataSet['X'].trainL - self.dataSet['X'].signTrainNum) * 2
+        flag0Train = ySignTrain[np.argwhere((self.dataSet['X'].Label == 0) & (self.dataSet['X'].YSign == 0)).flatten()]
+        flag1Train = ySignTrain[np.argwhere((self.dataSet['X'].Label == 0) & (self.dataSet['X'].YSign == 1)).flatten()]
+        correctTrain = sum(flag1Train) * self.dataSet['X'].ratio + len(flag0Train) - sum(flag0Train)
         fitnessTrain = self.penalty_func(correctTrain / sampleTrain)
 
-        sampleVerify = self.data.signVerifyNum * self.data.ratio + self.data.verifyL - self.data.signVerifyNum
-        flag0Verify = ySignVerify[np.argwhere((self.data.Label == 1) & (self.data.YSign == 0)).flatten()]
-        flag1Verify = ySignVerify[np.argwhere((self.data.Label == 1) & (self.data.YSign == 1)).flatten()]
-        correctVerify = sum(flag1Verify) * self.data.ratio + len(flag0Verify) - sum(flag0Verify)
+        sampleVerify = self.dataSet['X'].signVerifyNum * self.dataSet['X'].ratio + self.dataSet['X'].verifyL - self.dataSet['X'].signVerifyNum
+        flag0Verify = ySignVerify[np.argwhere((self.dataSet['X'].Label == 1) & (self.dataSet['X'].YSign == 0)).flatten()]
+        flag1Verify = ySignVerify[np.argwhere((self.dataSet['X'].Label == 1) & (self.dataSet['X'].YSign == 1)).flatten()]
+        correctVerify = sum(flag1Verify) * self.dataSet['X'].ratio + len(flag0Verify) - sum(flag0Verify)
         individual.verify.values = correctVerify / sampleVerify,
 
-        sampleTest = self.data.signTestNum * self.data.ratio + self.data.testL - self.data.signTestNum
-        flag0Test = ySignTest[np.argwhere((self.data.Label == 2) & (self.data.YSign == 0)).flatten()]
-        flag1Test = ySignTest[np.argwhere((self.data.Label == 2) & (self.data.YSign == 1)).flatten()]
-        correctTest = sum(flag1Test) * self.data.ratio + len(flag0Test) - sum(flag0Test)
+        sampleTest = self.dataSet['X'].signTestNum * self.dataSet['X'].ratio + self.dataSet['X'].testL - self.dataSet['X'].signTestNum
+        flag0Test = ySignTest[np.argwhere((self.dataSet['X'].Label == 2) & (self.dataSet['X'].YSign == 0)).flatten()]
+        flag1Test = ySignTest[np.argwhere((self.dataSet['X'].Label == 2) & (self.dataSet['X'].YSign == 1)).flatten()]
+        correctTest = sum(flag1Test) * self.dataSet['X'].ratio + len(flag0Test) - sum(flag0Test)
         individual.test.values = correctTest / sampleTest,
 
-        sampleTestR = self.data.signTestR * self.data.ratio + self.data.testL - self.data.signTestR
-        flag0TestR = ySignTest[np.argwhere((self.data.Label == 2) & (self.data.sign == 0)).flatten()]
-        flag1TestR = ySignTest[np.argwhere((self.data.Label == 2) & (self.data.sign == 1)).flatten()]
-        correctTestR = sum(flag1TestR) * self.data.ratio + len(flag0TestR) - sum(flag0TestR)
+        sampleTestR = self.dataSet['X'].signTestR * self.dataSet['X'].ratio + self.dataSet['X'].testL - self.dataSet['X'].signTestR
+        flag0TestR = ySignTest[np.argwhere((self.dataSet['X'].Label == 2) & (self.dataSet['X'].sign == 0)).flatten()]
+        flag1TestR = ySignTest[np.argwhere((self.dataSet['X'].Label == 2) & (self.dataSet['X'].sign == 1)).flatten()]
+        correctTestR = sum(flag1TestR) * self.dataSet['X'].ratio + len(flag0TestR) - sum(flag0TestR)
         individual.testR.values = correctTestR / sampleTestR,
 
         return fitnessTrain,
@@ -154,18 +154,18 @@ class GEPClassification(GEP):
                 ySimPred = gep.compile_(self.bestInd.items2[j], self.gep_p)(*tuple(sampleSim.X.T))
                 ySignSim = np.where(ySimPred > self.the, 1, 0)
 
-                sampleN = len(sampleSim.YSign) - sum(sampleSim.YSign) + sum(sampleSim.YSign) * self.data.ratio
+                sampleN = len(sampleSim.YSign) - sum(sampleSim.YSign) + sum(sampleSim.YSign) * self.dataSet['X'].ratio
 
                 flag0 = ySignSim[np.argwhere(sampleSim.YSign == 0).flatten()]
                 flag1 = ySignSim[np.argwhere(sampleSim.YSign == 1).flatten()]
-                correctN = sum(flag1) * self.data.ratio + len(flag0) - sum(flag0)  # 训练集参数
+                correctN = sum(flag1) * self.dataSet['X'].ratio + len(flag0) - sum(flag0)  # 训练集参数
                 MC1[j].append(round(correctN / sampleN, 4))
 
                 # 剔除噪音
-                sample = len(sampleSim.sign) - sum(sampleSim.sign) + sum(sampleSim.sign) * self.data.ratio
+                sample = len(sampleSim.sign) - sum(sampleSim.sign) + sum(sampleSim.sign) * self.dataSet['X'].ratio
                 flag0 = ySignSim[np.argwhere(sampleSim.sign == 0).flatten()]
                 flag1 = ySignSim[np.argwhere(sampleSim.sign == 1).flatten()]
-                correct = sum(flag1) * self.data.ratio + len(flag0) - sum(flag0)  # 训练集参数
+                correct = sum(flag1) * self.dataSet['X'].ratio + len(flag0) - sum(flag0)  # 训练集参数
                 MC2[j].append(round(correct / sample, 4))
 
         self.res['MC_Noise'] = pd.DataFrame(MC1)
@@ -255,7 +255,7 @@ def main2():
         params = {
             "path": r'A:\Work\Working\13.基于机器学习的因子挖掘\真实样本测试\test',
             "strategy": 'True Boll',
-            "data": sampleClass,
+            "dataSet": {"dataIn": sampleClass},
             "funcName": funcName,
             "funcNoise": funcNoise,
             "size": sampleClass.sampleL,

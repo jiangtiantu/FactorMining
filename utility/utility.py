@@ -4,24 +4,27 @@
 # @Email:  18817289038@163.com
 
 import os
+import time
 import scipy
 import bisect
 import numpy as np
+import numba as nb
 import pandas as pd
 import seaborn as sns
+import datetime as dt
 import pickle5 as pickle
 import matplotlib.pyplot as plt
 
 from copy import deepcopy
 from functools import wraps
 from typing import Any, Union, List, Tuple
+from numpy.lib.stride_tricks import sliding_window_view
 
 SMALL_VALUE = 1e-12  # 亿分之一以下定义为0
 
 
 # 维度和参数的检查
 def checkDim(*args, para: int = 0, dim: int) -> List[Any]:
-
     if para != 0:
         flag = 1
         args1 = tuple(np.repeat(i, dim) if isinstance(i, (float, int)) or not i.shape else i for i in args[:para])
@@ -62,14 +65,40 @@ def substitute(func):
     def wrapper(*args, **kwargs):
         res = func(*deepcopy(args), **deepcopy(kwargs))
         return res
+
     return wrapper
 
 
-# 滚动窗口构造函数
-def rolling_window(data: np.array, window: int):
-    shape = data.shape[:-1] + (data.shape[-1] - window + 1, window)
-    strides = data.strides + (data.strides[-1],)
-    return np.lib.stride_tricks.as_strided(data, shape=shape, strides=strides)
+def timer(func):
+    def wrapper(*args, **kwargs):
+        func_name = func.__name__
+
+        sta = time.time()
+
+        res = func(*args, **kwargs)
+
+        rang_time = round((time.time() - sta) / 60, 4)
+
+        print(f"\033[1;31m{dt.datetime.now().strftime('%X')}: It takes\033[0m "
+              f"\033[1;33m{rang_time:<6}Min\033[0m "
+              f"\033[1;31mto run func\033[0m "
+              f"\033[1;33m\'{func_name}\'\033[0m")
+        return res
+
+    return wrapper
+
+
+# 滚动窗口构造函数:只支持一维
+def rolling_window(data: pd.Series, window: int) -> np.array:
+    """
+    缺失部分填充nan
+    :param data:
+    :param window:
+    :return:
+    """
+    resSub = sliding_window_view(data, window)
+    res = np.concatenate((np.full((window - 1, window), np.nan), resSub))
+    return res
 
 
 # 数据读取
@@ -101,10 +130,10 @@ def stratified_sampling(length: int, odds: Tuple, seed: int) -> np.array:
         label1 = np.random.randint(1, odds[0])
         labels = (np.resize(0, label1), np.resize(1, odds[1]), np.resize(0, odds[0] - label1), np.resize(2, odds[2]))
     else:
-        labels = ([0], )
+        labels = ([0],)
         print("only one sub-sample: len(odds)==1")
     return np.resize(np.concatenate(labels), length)
 
 
 if __name__ == '__main__':
-    pass
+    p = rolling_window(pd.Series(np.array([1, 2, 3, 4,5,6,7,8])), 5)

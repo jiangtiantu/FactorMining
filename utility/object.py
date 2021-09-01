@@ -5,7 +5,7 @@
 
 import numpy as np
 import pandas as pd
-from typing import Callable
+from typing import Callable, Union
 from dataclasses import dataclass
 
 
@@ -55,17 +55,17 @@ class Regression(object):
     """
     默认训练集标记为0，验证集标记为1，测试集标记为2
     """
-    dataRaw: np.array  # 原始数据
+    dataRaw: Union[pd.DataFrame, np.array]  # 原始数据
 
-    X: np.array  # 总样本特征
-    Y: np.array  # 总样本标签(原始标签)
+    X: Union[pd.DataFrame, np.array]  # 总样本特征
+    Y: Union[pd.DataFrame, np.array]  # 总样本标签(原始标签)
 
-    sign: np.array
+    sign: Union[pd.DataFrame, np.array] = None
 
-    Label: np.array = None  # 样本划分标记
+    Label: Union[pd.DataFrame, np.array] = None  # 样本划分标记
 
-    def __post_init__(self):
-        self.sampleL = self.X.shape[0]
-        self.trainL = list(self.Label).count(0)
-        self.verifyL = list(self.Label).count(1)
-        self.testL = list(self.Label).count(2)
+
+@dataclass
+class DataInfo(object):
+    data: Union[pd.DataFrame, np.array]  # 原始数据
+    dataType: str = None

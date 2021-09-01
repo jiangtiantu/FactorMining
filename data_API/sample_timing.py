@@ -44,7 +44,7 @@ def stock_MC_X(seed: int = 0, size: int = 1000) -> pd.DataFrame:
     股价服从几何布朗运动，收益率服从均值为μ-1/2*σ^2，方差为σ^2/T的正态分布
     """
     np.random.seed(seed)
-    index5min = readData(r'..\database', "000905SH5minBar", 'csv')
+    index5min = readData(r'', "000905SH5minBar", 'csv')
     close5min = pd.pivot(data=index5min, index='tradeDate', columns='tradeTime', values='close')
     close5min.insert(0, 'last', close5min['15:00:00'].shift(1))
     ret5min = close5min.pct_change(axis=1).drop(columns='last')
@@ -74,7 +74,7 @@ def stock_MC_X(seed: int = 0, size: int = 1000) -> pd.DataFrame:
 
 
 def index300_X(seed: int = 0, size: int = 1000) -> pd.DataFrame:
-    indexData = readData(r'..\database', "Index", 'csv')
+    indexData = readData(r'..\data_API\data', "Index", 'csv')
     # indexData = readData(r'..\database', "index_905", 'csv')
     return indexData
 

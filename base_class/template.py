@@ -12,14 +12,14 @@ from operator import eq
 from functools import partial
 from bisect import bisect_right
 from dataclasses import dataclass
-from typing import List, Callable
 from collections import defaultdict
 from abc import ABC, abstractmethod
 from deap import creator, base, tools
+from typing import List, Callable, Dict
 
 from base_class.basic import gep_simple as run1  # 自适应概率
 from base_class.basic2 import gep_simple as run2
-from utility.operator_func import GEPFunctionTiming
+from utility.operator_func import GEPFunctionTiming, GEPFunctionSelecting
 
 """
 基因表达式相关模块
@@ -42,7 +42,7 @@ class Chromosome(gep.Chromosome):
         return hash(self.__str__())
 
     def __eq__(self, other):
-        return True if self.compare(self) == self.compare(other) else False
+        return hash(self.__str__()) == hash(other.__str__())  # if self.compare(self) == self.compare(other) else False
 
     def __str__(self):
         """
@@ -165,7 +165,7 @@ class GEP(ABC):
 
     def __init__(self, opt: int = 1):
         self.check_class(opt)
-        self.data: dataclass  # 数据类
+        self.dataSet: Dict[str, dataclass]  # 数据类
         self.TB = gep.Toolbox()
         self.Func = GEPFunctionTiming()
 
@@ -208,7 +208,7 @@ class GEP(ABC):
         """
         终端集
         """
-        self.gep_p = gep.PrimitiveSet('Main', input_names=[f"X{pos}" for pos in range(self.data.X.shape[1])])
+        self.gep_p = gep.PrimitiveSet('Main', input_names=[f"X{pos}" for pos in range(self.dataSet['X'].X.shape[1])])
         for func_, funcClass in self.Func.funcAtt.items():
             self.gep_p.add_function(funcClass.funcMethod, funcClass.arity, func_)
 
@@ -298,7 +298,7 @@ class GEP(ABC):
         self.pops = self.TB.population(n=self.n_pop)
         self.bestInd = HallOfFameGEP(self.bestNum)  # 名人堂
 
-        # pool = mp.Pool(processes=4)
+        # pool = mp.Pool(processes=3)
         # self.TB.register('map', pool.map)
 
         self.pops, self.logs = run2(self.pops,
@@ -307,5 +307,5 @@ class GEP(ABC):
                                     n_elites=self.n_elites,
                                     stats=self.stats,
                                     hall_of_fame=self.bestInd,
-                                    verbose=False)
+                                    verbose=True)
         # pool.close()

@@ -11,14 +11,14 @@ import seaborn as sns
 import bottleneck as bk
 import matplotlib.pyplot as plt
 
-from scipy.stats import t
+from scipy.stats import t, hmean, ttest_ind
 from functools import reduce
 from typing import Any, Tuple
 from utility.utility import checkDim
 from collections import defaultdict
 
 from base_class.template import GEP
-from database.sample import select_sample
+from data_API.sample_timing import select_sample
 from utility.operator_func import GEPFunctionTiming
 from run.GEP_tming import GEPTiming
 
@@ -189,12 +189,12 @@ def plot3():
 
 
 def test1():
-    path = r'A:\Work\Working\13.基于机器学习的因子挖掘\真实样本测试\3.真实样本挖掘\16.无构造函数\对比'
+    path = r'A:\Work\Working\13.基于机器学习的因子挖掘\相关实验\19.真实样本_独立样本t检验_有无构造函数_分类问题_Timing\有构造函数'
     folders = os.listdir(path)
     res, best = {}, defaultdict(list)
     for folder in folders:
         print(folder)
-        if folder in ['对比', '结果整理.xlsx']:
+        if folder in ['对比', '结果整理.xlsx', '结果', 'F1.csv']:
             continue
         folderPath = os.path.join(path, folder)
         files = os.listdir(folderPath)
@@ -202,16 +202,25 @@ def test1():
         for file in files:
             data = pd.read_csv(os.path.join(folderPath, file), encoding='GBK')
             if file.startswith('formula'):
+                formulaSub2 = data[(data['verify'] > 0) & (data['verify2'] > 0) & (data['train'] > 0)]
+                data.loc[formulaSub2.index, 'verifyF2'] = hmean(formulaSub2[['train', 'verify', 'verify2']], axis=1)
                 eff10 = data.drop_duplicates(subset=['train', 'verify', 'verify2', 'test', 'test2']).sort_values(
-                    'verifyF1', ascending=False).iloc[:10, ]
+                    'verifyF2', ascending=False).iloc[:1, ]
                 eff10['p'] = eff10['test2'].map(lambda x: t.sf(x, 136))
                 eff10['iter'] = file[7:-4]
                 best[folder].append(eff10)  # [eff10['verifyF1'] >= 1.98]
             else:
                 m.append(data)
-        res[folder] = reduce(lambda x, y: x + y, m) / 50
-    iterRes = pd.DataFrame(res).to_csv(r'A:\Work\Working\13.基于机器学习的因子挖掘\真实样本测试\3.真实样本挖掘\16.无构造函数\对比\迭代结果.csv')
-    bestFormula = pd.concat(best).to_csv(r'A:\Work\Working\13.基于机器学习的因子挖掘\真实样本测试\3.真实样本挖掘\16.无构造函数\对比\最优公式.csv')
+        # res[folder] = reduce(lambda x, y: x + y, m) / 50
+    # iterRes = pd.DataFrame(res).to_csv(os.path.join(path, 'testF1.csv'))
+    resList = []
+    for i in best.keys():
+        sub = pd.concat(best[i])
+        sub['Name'] = i
+        resList.append(sub)
+    res = pd.concat(resList)
+    res_df = pd.pivot(data=res, index='iter', columns='Name', value='p')
+    bestFormula = pd.concat(best).to_csv(os.path.join(path, 'testF2.csv'))
     # plot
 
 
@@ -305,27 +314,36 @@ def _compile_gene(g, pset):
 
 def test4():
     qq = 0
-    path = r'A:\Work\Working\13.基于机器学习的因子挖掘\相关实验\21.真实样本_独立样本t检验_自适应概率'
+    path = r'A:\Work\Working\13.基于机器学习的因子挖掘\相关实验\21.真实样本_独立样本t检验_自适应概率_分类问题_Timing\自适应概率'
     files = os.listdir(path)
-    m, best10 = [], []
+    m, bestF1, bestF2 = [], [], []
     for file in files:
         if file in ['结果整理.xlsx', '对比.xlsx', '迭代结果.xlsx', '固定概率', '历史']:
             continue
         print(file)
         data = pd.read_csv(os.path.join(path, file))
         if file.startswith('formula'):
+            effF1 = data.drop_duplicates(subset=['train', 'verify', 'verify2', 'test', 'test2']).sort_values(
+                'verifyF1', ascending=False).iloc[:1, ]
+            effF1['p'] = effF1['test2'].map(lambda x: t.sf(x, 136))
+            effF1['iter'] = file[7:-4]
+            bestF1.append(effF1)
 
-            eff10 = data.drop_duplicates(subset=['train', 'verify', 'verify2', 'test', 'test2']).sort_values(
-                'verifyF1', ascending=False).iloc[:10, ]
-            eff10['p'] = eff10['test2'].map(lambda x: t.sf(x, 136))
-            eff10['iter'] = file[7:-4]
-            best10.append(eff10)  # [eff10['verifyF1'] >= 1.98]
+            effF2 = data.drop_duplicates(subset=['train', 'verify', 'verify2', 'test', 'test2']).sort_values(
+                'verifyF2', ascending=False).iloc[:1, ]
+            effF2['p'] = effF2['test2'].map(lambda x: t.sf(x, 136))
+            effF2['iter'] = file[7:-4]
+            bestF2.append(effF2)
         else:
             m.append(data)
     # iters = reduce(lambda x, y: x + y, m) / 30
-    pd.concat(best10).to_csv(os.path.join(path, 'testF1.csv'), encoding='GBK')
+    pd.concat(bestF1).to_csv(os.path.join(path, 'F1.csv'), encoding='GBK')
+    pd.concat(bestF2).to_csv(os.path.join(path, 'F2.csv'), encoding='GBK')
     # iters.to_csv(os.path.join(path, '迭代.csv'), encoding='GBK')
 
 
 if __name__ == '__main__':
+    op = pd.DataFrame({"A": [1, 2, 3], "R": [4, 5, 6]})
+    p = lambda *x: sum(*x)
+    res = p(*dict(op.iteritems()).values())
     test4()

@@ -8,6 +8,9 @@ import time
 import math
 import random
 import warnings
+from copy import deepcopy
+
+from functools import lru_cache
 
 """
 加了去重和计时等功能
@@ -53,6 +56,12 @@ def _apply_crossover(population, operator, pb):
             del population[i - 1].fitness.values
             del population[i].fitness.values
     return population
+
+
+@lru_cache(maxsize=pow(2, 15), typed=False)
+def fitness_cal(ind, func):
+    ind.fitness.values = func(ind)
+    return ind
 
 
 def gep_simple(population, toolbox, n_generations=100, n_elites=1,
@@ -101,18 +110,17 @@ def gep_simple(population, toolbox, n_generations=100, n_elites=1,
         for ind in population:
             ind.gen = gen
 
+        # 去重
+        population = list(set(population))
+
         invalid_individuals = [ind for ind in population if not ind.fitness.valid]
-        fitnessCal = toolbox.map(toolbox.evaluate, invalid_individuals)
         sta = time.time()
-        for ind, fit in zip(invalid_individuals, fitnessCal):
-            ind.fitness.values = fit
+        for ind in invalid_individuals:
+            ind.__dict__.update(fitness_cal(ind, toolbox.evaluate).__dict__)  # 防止新产生的个体没有值
 
         # record statistics and log
         if hall_of_fame is not None:
             hall_of_fame.update(population)
-
-        # 去重
-        population = list(set(population))
 
         record = stats.compile(population) if stats else {}
         end = round(time.time() - sta, 2)
